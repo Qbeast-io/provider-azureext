@@ -123,15 +123,13 @@ type external struct {
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-
 	cr, ok := mg.(*v1alpha1.CredentialSet)
 	if !ok {
 		return errors.New(errNotCredentialSet)
 	}
 
 	service := c.service.(*pulumiservice.Service)
-	err := service.DeleteCredentialSet(ctx, &cr.Spec)
-	return err
+	return service.DeleteCredentialSet(ctx, &cr.Spec)
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -139,15 +137,12 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotCredentialSet)
 	}
-
 	service := c.service.(*pulumiservice.Service)
 	obs, exists, upToDate, err := service.ObserveCredentialSet(ctx, &cr.Spec)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	// Update the CR status with the observed state
 	cr.Status.AtProvider = *obs
-
 	return managed.ExternalObservation{
 		ResourceExists:   exists,
 		ResourceUpToDate: upToDate,
@@ -190,5 +185,4 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		// external resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
-
 }

@@ -17,10 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"reflect"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
