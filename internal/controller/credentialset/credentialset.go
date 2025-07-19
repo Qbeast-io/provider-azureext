@@ -18,6 +18,7 @@ package credentialset
 
 import (
 	"context"
+	v1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -28,7 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/qbeast-io/provider-azureext/apis/containerregistry/v1alpha1"
 	apisv1alpha1 "github.com/qbeast-io/provider-azureext/apis/v1alpha1"
-	"github.com/qbeast-io/provider-azureext/internal/controller/pulumiservice"
+	"github.com/qbeast-io/provider-azureext/internal/controller/azureservice"
 	"github.com/qbeast-io/provider-azureext/internal/features"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -58,7 +59,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: pulumiservice.NewService}),
+			newServiceFn: azureservice.NewService}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithPollInterval(o.PollInterval),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
@@ -128,7 +129,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotCredentialSet)
 	}
 
-	service := c.service.(*pulumiservice.Service)
+	service := c.service.(*azureservice.Service)
 	return service.DeleteCredentialSet(ctx, &cr.Spec)
 }
 
@@ -137,12 +138,15 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotCredentialSet)
 	}
-	service := c.service.(*pulumiservice.Service)
+	service := c.service.(*azureservice.Service)
 	obs, exists, upToDate, err := service.ObserveCredentialSet(ctx, &cr.Spec)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
 	cr.Status.AtProvider = *obs
+	if exists && upToDate {
+		cr.Status.SetConditions(v1.Available())
+	}
 	return managed.ExternalObservation{
 		ResourceExists:   exists,
 		ResourceUpToDate: upToDate,
@@ -155,7 +159,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotCredentialSet)
 	}
 
-	service := c.service.(*pulumiservice.Service)
+	service := c.service.(*azureservice.Service)
 	_, err := service.ApplyCredentialSet(ctx, &cr.Spec)
 	if err != nil {
 		return managed.ExternalCreation{}, err
@@ -174,7 +178,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotCredentialSet)
 	}
 
-	service := c.service.(*pulumiservice.Service)
+	service := c.service.(*azureservice.Service)
 	_, err := service.ApplyCredentialSet(ctx, &cr.Spec)
 	if err != nil {
 		return managed.ExternalUpdate{}, err

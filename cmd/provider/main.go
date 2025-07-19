@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
+	"gopkg.in/alecthomas/kingpin.v2"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -66,6 +66,8 @@ func main() {
 		// *very* verbose even at info level, so we only provide it a real
 		// logger when we're running in debug mode.
 		ctrl.SetLogger(zl)
+	} else {
+		ctrl.SetLogger(zap.New(zap.UseDevMode(false)))
 	}
 
 	cfg, err := ctrl.GetConfig()

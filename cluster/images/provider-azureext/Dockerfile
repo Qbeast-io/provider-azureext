@@ -5,5 +5,4 @@ ARG TARGETARCH
 
 ADD bin/$TARGETOS\_$TARGETARCH/provider /usr/local/bin/crossplane-azureext-provider
 
-USER 65532
 ENTRYPOINT ["crossplane-azureext-provider"]
