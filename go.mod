@@ -2,7 +2,7 @@ module github.com/qbeast-io/provider-azureext
 
 go 1.23.0
 
-toolchain go1.24.2
+toolchain go1.23.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0
