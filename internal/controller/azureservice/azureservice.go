@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -52,44 +53,12 @@ func makeAuthCredentials(credentials []v1alpha1.AuthCredential) []*armcontainerr
 	return authCredentials
 }
 
-var createdByTypes = map[string]armcontainerregistry.CreatedByType{
-	"User":            armcontainerregistry.CreatedByTypeUser,
-	"Application":     armcontainerregistry.CreatedByTypeApplication,
-	"ManagedIdentity": armcontainerregistry.CreatedByTypeManagedIdentity,
-	"Key":             armcontainerregistry.CreatedByTypeKey,
-}
-
-func makeCreatedByType(createdByType string) armcontainerregistry.CreatedByType {
-	return createdByTypes[createdByType]
-}
-
-var lastModifiedByTypes = map[string]armcontainerregistry.LastModifiedByType{
-	"User":            armcontainerregistry.LastModifiedByTypeUser,
-	"Application":     armcontainerregistry.LastModifiedByTypeApplication,
-	"ManagedIdentity": armcontainerregistry.LastModifiedByTypeManagedIdentity,
-	"Key":             armcontainerregistry.LastModifiedByTypeKey,
-}
-
-func makeLastModifiedByType(lastModifiedByType string) armcontainerregistry.LastModifiedByType {
-	return lastModifiedByTypes[lastModifiedByType]
-}
-
-func makeUserAssignedIdentities(identities map[string]v1alpha1.UserAssignedIdentity) map[string]*armcontainerregistry.UserIdentityProperties {
-	userIdentities := make(map[string]*armcontainerregistry.UserIdentityProperties)
-	for k, v := range identities {
-		userIdentities[k] = &armcontainerregistry.UserIdentityProperties{
-			ClientID:    &v.ClientId,
-			PrincipalID: &v.PrincipalId,
-		}
-	}
-	return userIdentities
-}
-
 func (s *Service) ObserveCredentialSet(ctx context.Context, spec *v1alpha1.CredentialSetSpec) (*v1alpha1.CredentialSetObservation, bool /* exists */, bool /* upToDate */, error) {
 	res, err := s.credentialSetsClient.Get(ctx, spec.ForProvider.ResourceGroupName, spec.ForProvider.RegistryName, spec.ForProvider.Name, &armcontainerregistry.CredentialSetsClientGetOptions{})
 	if err != nil {
-		responseError := err.(*azcore.ResponseError)
-		if responseError != nil && responseError.ErrorCode == "ResourceNotFound" {
+		var azureErr azcore.ResponseError
+		isAzureErr := errors.As(err, &azureErr)
+		if isAzureErr && azureErr.ErrorCode == "ResourceNotFound" {
 			return &v1alpha1.CredentialSetObservation{}, false, false, nil // Not found
 		}
 		return nil, false, false, errors.New("failed to get credential set")
@@ -124,6 +93,10 @@ func credentialSetUpToDate(spec *v1alpha1.CredentialSetSpec, res armcontainerreg
 		return false
 	}
 
+	return userAuthCredentialsUpToDate(spec, res)
+}
+
+func userAuthCredentialsUpToDate(spec *v1alpha1.CredentialSetSpec, res armcontainerregistry.CredentialSetsClientGetResponse) bool {
 	for i, authCred := range spec.ForProvider.AuthCredentials {
 		if res.Properties.AuthCredentials[i].Name == nil || *res.Properties.AuthCredentials[i].Name != armcontainerregistry.CredentialName(authCred.Name) ||
 			res.Properties.AuthCredentials[i].UsernameSecretIdentifier == nil || *res.Properties.AuthCredentials[i].UsernameSecretIdentifier != authCred.UsernameSecretIdentifier ||
@@ -131,7 +104,6 @@ func credentialSetUpToDate(spec *v1alpha1.CredentialSetSpec, res armcontainerreg
 			return false
 		}
 	}
-
 	return true
 }
 
@@ -204,8 +176,9 @@ func (s *Service) DeleteCredentialSet(ctx context.Context, spec *v1alpha1.Creden
 func (s *Service) ObserveCacheRule(ctx context.Context, spec *v1alpha1.CacheRuleSpec) (*v1alpha1.CacheRuleObservation, bool /* exists */, bool /* upToDate */, error) {
 	res, err := s.cacheRulesClient.Get(ctx, spec.ForProvider.ResourceGroupName, spec.ForProvider.RegistryName, spec.ForProvider.CacheRuleName, &armcontainerregistry.CacheRulesClientGetOptions{})
 	if err != nil {
-		responseError := err.(*azcore.ResponseError)
-		if responseError != nil && responseError.ErrorCode == "ResourceNotFound" {
+		var azureErr azcore.ResponseError
+		isAzureErr := errors.As(err, &azureErr)
+		if isAzureErr && azureErr.ErrorCode == "ResourceNotFound" {
 			return &v1alpha1.CacheRuleObservation{}, false, false, nil // Not found
 		}
 		return nil, false, false, errors.New("failed to get credential set")
@@ -238,8 +211,9 @@ func cacheRuleUpToDate(spec *v1alpha1.CacheRuleSpec, res armcontainerregistry.Ca
 func (s *Service) ApplyCacheRule(ctx context.Context, spec *v1alpha1.CacheRuleSpec) (*v1alpha1.CacheRuleObservation, error) {
 	credentialSet, err := s.credentialSetsClient.Get(ctx, spec.ForProvider.ResourceGroupName, spec.ForProvider.RegistryName, spec.ForProvider.CredentialSetName, &armcontainerregistry.CredentialSetsClientGetOptions{})
 	if err != nil {
-		responseError := err.(*azcore.ResponseError)
-		if responseError != nil && responseError.ErrorCode == "ResourceNotFound" {
+		var azureErr azcore.ResponseError
+		isAzureErr := errors.As(err, &azureErr)
+		if isAzureErr && azureErr.ErrorCode == "ResourceNotFound" {
 			return nil, fmt.Errorf("credential set %s not found in registry %s in resource group %s", spec.ForProvider.CredentialSetName, spec.ForProvider.RegistryName, spec.ForProvider.ResourceGroupName)
 		}
 		return nil, errors.New("failed to get credential set")
