@@ -1,4 +1,5 @@
-// +build generate
+//nolint:all
+//go:build generate
 
 /*
 Copyright 2020 The Crossplane Authors.
@@ -31,7 +32,7 @@ limitations under the License.
 package apis
 
 import (
-	_ "sigs.k8s.io/controller-tools/cmd/controller-gen" //nolint:typecheck
+	_ "sigs.k8s.io/controller-tools/cmd/controller-gen" //nolint:all
 
-	_ "github.com/crossplane/crossplane-tools/cmd/angryjet" //nolint:typecheck
+	_ "github.com/crossplane/crossplane-tools/cmd/angryjet" //nolint:all
 )
