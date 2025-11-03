@@ -18,6 +18,7 @@ package cacherule
 
 import (
 	"context"
+
 	v1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
@@ -26,13 +27,14 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/qbeast-io/provider-azureext/apis/containerregistry/v1alpha1"
 	apisv1alpha1 "github.com/qbeast-io/provider-azureext/apis/v1alpha1"
 	"github.com/qbeast-io/provider-azureext/internal/controller/azureservice"
 	"github.com/qbeast-io/provider-azureext/internal/features"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
